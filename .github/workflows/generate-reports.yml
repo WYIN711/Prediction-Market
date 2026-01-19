@@ -37,43 +37,22 @@ jobs:
       - name: Create data directory
         run: mkdir -p data/kalshi_trades
 
-      - name: Check disk space
+      - name: Check disk space (before)
         run: df -h
 
-      - name: Download trade data from releases
+      - name: Download and aggregate trade data
         run: |
-          DAYS_BACK="${{ github.event.inputs.days_back || '90' }}"
-          echo "Downloading last $DAYS_BACK days of data..."
-          
-          # Get list of data releases
-          RELEASES=$(gh release list --limit 200 --json tagName -q '.[].tagName' | grep '^data-' | sort -r | head -n "$DAYS_BACK")
-          
-          if [[ -z "$RELEASES" ]]; then
-            echo "No data releases found. Running with available data."
-            exit 0
-          fi
-          
-          for TAG in $RELEASES; do
-            DATE_STR="${TAG#data-}"
-            ARCHIVE_NAME="kalshi_trades_${DATE_STR}.tar.gz"
-            
-            echo "Downloading $TAG..."
-            gh release download "$TAG" -p "$ARCHIVE_NAME" -D data/kalshi_trades 2>/dev/null || continue
-            
-            # Extract and immediately delete archive to save space
-            cd data/kalshi_trades
-            tar -xzf "$ARCHIVE_NAME" 2>/dev/null || true
-            rm -f "$ARCHIVE_NAME"
-            # Remove macOS resource fork files if present
-            rm -f ._*.json 2>/dev/null || true
-            cd ../..
-          done
-          
-          echo "Downloaded files:"
-          ls -lh data/kalshi_trades/*.json 2>/dev/null | wc -l
-          du -sh data/kalshi_trades/
+          # Use incremental download script to minimize disk usage
+          # This downloads, processes, and deletes files one at a time
+          python scripts/download_and_aggregate.py
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          DAYS_BACK: ${{ github.event.inputs.days_back || '90' }}
+          KALSHI_DATA_DIR: ${{ github.workspace }}/data/kalshi_trades
+
+      - name: Check disk space (after download)
+        run: df -h
 
       - name: Generate reports
         run: |

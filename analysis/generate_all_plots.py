@@ -265,6 +265,17 @@ def plot_top_categories(df: pd.DataFrame, top_n: int = 10, window: int = 7) -> P
 
 
 def process_files() -> Tuple[pd.DataFrame, pd.DataFrame]:
+    # First, check if aggregated CSV files exist (created by download_and_aggregate.py)
+    aggregated_daily = DATA_DIR / "aggregated_daily.csv"
+    aggregated_category = DATA_DIR / "aggregated_category.csv"
+    
+    if aggregated_daily.exists() and aggregated_category.exists():
+        print(f"Using pre-aggregated data from {DATA_DIR}")
+        daily_df = pd.read_csv(aggregated_daily, parse_dates=["date"])
+        category_df = pd.read_csv(aggregated_category, parse_dates=["date"])
+        return daily_df, category_df
+    
+    # Otherwise, process JSON files directly
     totals: List[Tuple[pd.Timestamp, int]] = []
     category_records: List[dict[str, Any]] = []
 
