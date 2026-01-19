@@ -1,0 +1,58 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environment
+.venv/
+venv/
+ENV/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Logs
+logs/
+*.log
+
+# Large data files (stored in GitHub Releases instead)
+data/kalshi_trades/*.json
+
+# Keep the data directory structure
+!data/kalshi_trades/.gitkeep
+
+# Analysis outputs (generated, not tracked)
+analysis/*.png
+analysis/*.csv
+analysis/runs/
+
+# Keep the analysis scripts
+!analysis/*.py
+!analysis/*.sh
+!analysis/*.R
+!analysis/README.md

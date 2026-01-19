@@ -1,0 +1,130 @@
+name: Download Kalshi Trades
+
+on:
+  schedule:
+    - cron: "30 09 * * *" # daily at 09:30 UTC (05:30 ET)
+  workflow_dispatch:
+    inputs:
+      start_date:
+        description: 'Start date (YYYY-MM-DD), leave empty for auto-detect'
+        required: false
+      end_date:
+        description: 'End date (YYYY-MM-DD), leave empty for yesterday'
+        required: false
+
+permissions:
+  contents: write
+
+env:
+  TZ: America/New_York
+
+jobs:
+  download:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Determine date range
+        id: dates
+        run: |
+          # Get yesterday's date in ET
+          YESTERDAY=$(TZ=America/New_York date -d "yesterday" +%Y-%m-%d)
+          
+          # Check latest release to find last downloaded date
+          LATEST_TAG=$(gh release list --limit 1 --json tagName -q '.[0].tagName' 2>/dev/null || echo "")
+          
+          if [[ -n "${{ github.event.inputs.start_date }}" ]]; then
+            START_DATE="${{ github.event.inputs.start_date }}"
+          elif [[ -n "$LATEST_TAG" && "$LATEST_TAG" =~ ^data-([0-9]{4}-[0-9]{2}-[0-9]{2})$ ]]; then
+            # Start from day after latest release
+            LAST_DATE="${BASH_REMATCH[1]}"
+            START_DATE=$(date -d "$LAST_DATE + 1 day" +%Y-%m-%d)
+          else
+            # Default start date
+            START_DATE="2025-08-15"
+          fi
+          
+          if [[ -n "${{ github.event.inputs.end_date }}" ]]; then
+            END_DATE="${{ github.event.inputs.end_date }}"
+          else
+            END_DATE="$YESTERDAY"
+          fi
+          
+          echo "start_date=$START_DATE" >> $GITHUB_OUTPUT
+          echo "end_date=$END_DATE" >> $GITHUB_OUTPUT
+          echo "Downloading from $START_DATE to $END_DATE"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create data directory
+        run: mkdir -p data/kalshi_trades
+
+      - name: Download Kalshi trades
+        run: |
+          python scripts/download_kalshi_trades.py \
+            --start-date "${{ steps.dates.outputs.start_date }}" \
+            --end-date "${{ steps.dates.outputs.end_date }}" \
+            --max-workers 4 \
+            --output-dir data/kalshi_trades
+
+      - name: Check for new files
+        id: check_files
+        run: |
+          FILE_COUNT=$(ls -1 data/kalshi_trades/*.json 2>/dev/null | wc -l || echo "0")
+          echo "file_count=$FILE_COUNT" >> $GITHUB_OUTPUT
+          if [[ "$FILE_COUNT" -gt 0 ]]; then
+            echo "has_files=true" >> $GITHUB_OUTPUT
+            ls -lh data/kalshi_trades/*.json
+          else
+            echo "has_files=false" >> $GITHUB_OUTPUT
+            echo "No new files downloaded"
+          fi
+
+      - name: Compress and upload to release
+        if: steps.check_files.outputs.has_files == 'true'
+        run: |
+          cd data/kalshi_trades
+          
+          # Process each JSON file individually
+          for json_file in *.json; do
+            if [[ -f "$json_file" ]]; then
+              DATE_STR="${json_file%.json}"
+              ARCHIVE_NAME="kalshi_trades_${DATE_STR}.tar.gz"
+              
+              echo "Compressing $json_file..."
+              tar -czf "$ARCHIVE_NAME" "$json_file"
+              
+              # Create or update release for this date
+              TAG_NAME="data-${DATE_STR}"
+              RELEASE_TITLE="Trade Data: ${DATE_STR}"
+              
+              echo "Creating release $TAG_NAME..."
+              gh release create "$TAG_NAME" \
+                --title "$RELEASE_TITLE" \
+                --notes "Kalshi trade data for ${DATE_STR}" \
+                "$ARCHIVE_NAME" \
+                --clobber 2>/dev/null || \
+              gh release upload "$TAG_NAME" "$ARCHIVE_NAME" --clobber
+              
+              # Clean up
+              rm -f "$ARCHIVE_NAME" "$json_file"
+            fi
+          done
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Summary
+        run: |
+          echo "## Download Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- Date range: ${{ steps.dates.outputs.start_date }} to ${{ steps.dates.outputs.end_date }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Files processed: ${{ steps.check_files.outputs.file_count }}" >> $GITHUB_STEP_SUMMARY

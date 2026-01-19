@@ -1,0 +1,49 @@
+name: Upload Historical Data
+
+# Manual trigger only - run once to upload existing data
+on:
+  workflow_dispatch:
+    inputs:
+      data_path:
+        description: 'Local path to kalshi_trades folder (for local runs)'
+        required: false
+        default: 'data/kalshi_trades'
+      batch_size:
+        description: 'Number of files to upload per batch (to avoid rate limits)'
+        required: false
+        default: '10'
+
+permissions:
+  contents: write
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Instructions
+        run: |
+          echo "=============================================="
+          echo "HISTORICAL DATA UPLOAD"
+          echo "=============================================="
+          echo ""
+          echo "This workflow is designed to be run LOCALLY to upload"
+          echo "your existing 29GB of historical data to GitHub Releases."
+          echo ""
+          echo "Run this script locally:"
+          echo ""
+          echo "  ./scripts/upload_historical_data.sh"
+          echo ""
+          echo "The script will:"
+          echo "  1. Compress each JSON file"
+          echo "  2. Create a GitHub Release for each date"
+          echo "  3. Upload the compressed archive"
+          echo ""
+          echo "Make sure you have 'gh' CLI installed and authenticated:"
+          echo "  brew install gh"
+          echo "  gh auth login"
+          echo ""
+          echo "=============================================="
