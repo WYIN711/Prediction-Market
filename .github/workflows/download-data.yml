@@ -99,21 +99,24 @@ jobs:
             if [[ -f "$json_file" ]]; then
               DATE_STR="${json_file%.json}"
               ARCHIVE_NAME="kalshi_trades_${DATE_STR}.tar.gz"
+              TAG_NAME="data-${DATE_STR}"
+              RELEASE_TITLE="Trade Data: ${DATE_STR}"
               
               echo "Compressing $json_file..."
               tar -czf "$ARCHIVE_NAME" "$json_file"
               
-              # Create or update release for this date
-              TAG_NAME="data-${DATE_STR}"
-              RELEASE_TITLE="Trade Data: ${DATE_STR}"
-              
               echo "Creating release $TAG_NAME..."
-              gh release create "$TAG_NAME" \
-                --title "$RELEASE_TITLE" \
-                --notes "Kalshi trade data for ${DATE_STR}" \
-                "$ARCHIVE_NAME" \
-                --clobber 2>/dev/null || \
-              gh release upload "$TAG_NAME" "$ARCHIVE_NAME" --clobber
+              # Check if release already exists
+              if gh release view "$TAG_NAME" &>/dev/null; then
+                echo "Release exists, uploading asset..."
+                gh release upload "$TAG_NAME" "$ARCHIVE_NAME" --clobber
+              else
+                echo "Creating new release..."
+                gh release create "$TAG_NAME" \
+                  --title "$RELEASE_TITLE" \
+                  --notes "Kalshi trade data for ${DATE_STR}" \
+                  "$ARCHIVE_NAME"
+              fi
               
               # Clean up
               rm -f "$ARCHIVE_NAME" "$json_file"
