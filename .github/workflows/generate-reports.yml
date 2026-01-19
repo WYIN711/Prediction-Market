@@ -6,9 +6,9 @@ on:
   workflow_dispatch:
     inputs:
       days_back:
-        description: 'Number of days of data to download (default: 90)'
+        description: 'Number of days of data to download (default: 30)'
         required: false
-        default: '90'
+        default: '30'
 
 permissions:
   contents: read
@@ -37,9 +37,12 @@ jobs:
       - name: Create data directory
         run: mkdir -p data/kalshi_trades
 
+      - name: Check disk space
+        run: df -h
+
       - name: Download trade data from releases
         run: |
-          DAYS_BACK="${{ github.event.inputs.days_back || '90' }}"
+          DAYS_BACK="${{ github.event.inputs.days_back || '30' }}"
           echo "Downloading last $DAYS_BACK days of data..."
           
           # Get list of data releases
@@ -57,7 +60,7 @@ jobs:
             echo "Downloading $TAG..."
             gh release download "$TAG" -p "$ARCHIVE_NAME" -D data/kalshi_trades 2>/dev/null || continue
             
-            # Extract
+            # Extract and immediately delete archive to save space
             cd data/kalshi_trades
             tar -xzf "$ARCHIVE_NAME" 2>/dev/null || true
             rm -f "$ARCHIVE_NAME"
@@ -65,7 +68,8 @@ jobs:
           done
           
           echo "Downloaded files:"
-          ls -lh data/kalshi_trades/*.json 2>/dev/null | head -20 || echo "No files downloaded"
+          ls -lh data/kalshi_trades/*.json 2>/dev/null | wc -l
+          du -sh data/kalshi_trades/
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -79,7 +83,6 @@ jobs:
           
           # Run the analysis
           PYTHON_BIN=python ./analysis/update_plots.sh
-        continue-on-error: true
 
       - name: Prepare report artifacts
         id: prepare
@@ -130,7 +133,7 @@ jobs:
   notify:
     needs: generate-reports
     runs-on: ubuntu-latest
-    if: always()
+    if: always() && vars.ENABLE_EMAIL_NOTIFICATIONS == 'true'
 
     steps:
       - name: Send notification email
