@@ -23,8 +23,12 @@ OUTPUT_DIR = Path(os.environ.get("KALSHI_ANALYSIS_DIR", DEFAULT_OUTPUT_DIR))
 
 
 def load_trade_payload(file_path: Path) -> Tuple[pd.Timestamp, Iterable[dict]]:
-    with file_path.open("r", encoding="utf-8") as f:
-        payload = json.load(f)
+    try:
+        with file_path.open("r", encoding="utf-8") as f:
+            payload = json.load(f)
+    except (UnicodeDecodeError, json.JSONDecodeError) as e:
+        print(f"Warning: Skipping corrupted file {file_path}: {e}")
+        return pd.to_datetime(file_path.stem), []
 
     date_str: Union[str, None] = None
     trades: Iterable[dict]
@@ -37,7 +41,8 @@ def load_trade_payload(file_path: Path) -> Tuple[pd.Timestamp, Iterable[dict]]:
         if trades:
             date_str = trades[0].get("date")
     else:
-        raise ValueError(f"Unsupported payload structure in {file_path}")
+        print(f"Warning: Unsupported payload structure in {file_path}")
+        return pd.to_datetime(file_path.stem), []
 
     if not date_str:
         date_str = file_path.stem
