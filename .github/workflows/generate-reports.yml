@@ -6,9 +6,9 @@ on:
   workflow_dispatch:
     inputs:
       days_back:
-        description: 'Number of days of data to download (default: 60, i.e. ~2 months)'
+        description: 'Number of days of data to download (default: 90, report shows ~83 days after 7-day warmup)'
         required: false
-        default: '60'
+        default: '90'
 
 permissions:
   contents: write
@@ -42,7 +42,7 @@ jobs:
 
       - name: Download trade data from releases
         run: |
-          DAYS_BACK="${{ github.event.inputs.days_back || '60' }}"
+          DAYS_BACK="${{ github.event.inputs.days_back || '90' }}"
           echo "Downloading last $DAYS_BACK days of data..."
           
           # Get list of data releases

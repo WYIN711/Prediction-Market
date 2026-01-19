@@ -198,7 +198,11 @@ def format_millions(x: float, pos: int) -> str:
 
 def plot_rolling_volume(df: pd.DataFrame, window: int = 7) -> Path:
     df = df.copy()
-    df["rolling_volume"] = df["total_volume"].rolling(window=window, min_periods=1).sum()
+    # Use min_periods=window to ensure we have complete rolling windows
+    df["rolling_volume"] = df["total_volume"].rolling(window=window, min_periods=window).sum()
+    
+    # Drop rows with incomplete rolling windows (first window-1 days)
+    df = df.dropna(subset=["rolling_volume"])
 
     fig, ax = plt.subplots(figsize=(14, 9))
     ax.plot(df["date"], df["rolling_volume"], color="#0b3d91", linewidth=2)
@@ -230,7 +234,11 @@ def plot_top_categories(df: pd.DataFrame, top_n: int = 10, window: int = 7) -> P
     top_categories = ensure_top_categories(pivot, top_n=top_n)
     pivot = pivot[top_categories]
 
-    rolling = pivot.rolling(window=window, min_periods=1).mean()
+    # Use min_periods=window to ensure we have complete rolling windows
+    rolling = pivot.rolling(window=window, min_periods=window).mean()
+    
+    # Drop rows with incomplete rolling windows (first window-1 days)
+    rolling = rolling.dropna()
 
     plot_df = rolling.reset_index().melt(
         id_vars="date", var_name="Category", value_name="Volume"
