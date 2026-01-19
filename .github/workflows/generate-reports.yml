@@ -2,7 +2,7 @@ name: Generate Analysis Reports
 
 on:
   schedule:
-    - cron: "0 13 * * 1,4" # Monday & Thursday at 13:00 UTC (08:00 ET)
+    - cron: "0 8 * * 5" # Friday at 08:00 UTC (16:00 HKT)
   workflow_dispatch:
     inputs:
       days_back:
