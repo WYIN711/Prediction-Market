@@ -64,6 +64,8 @@ jobs:
             cd data/kalshi_trades
             tar -xzf "$ARCHIVE_NAME" 2>/dev/null || true
             rm -f "$ARCHIVE_NAME"
+            # Remove macOS resource fork files if present
+            rm -f ._*.json 2>/dev/null || true
             cd ../..
           done
           

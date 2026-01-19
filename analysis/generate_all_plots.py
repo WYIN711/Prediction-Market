@@ -261,6 +261,9 @@ def process_files() -> Tuple[pd.DataFrame, pd.DataFrame]:
     category_records: List[dict[str, Any]] = []
 
     for json_file in sorted(DATA_DIR.glob("*.json")):
+        # Skip macOS resource fork files
+        if json_file.name.startswith("._"):
+            continue
         try:
             date, trades = load_trade_payload(json_file)
         except FileNotFoundError:
