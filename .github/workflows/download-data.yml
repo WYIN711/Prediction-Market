@@ -39,8 +39,11 @@ jobs:
           # Get yesterday's date in ET
           YESTERDAY=$(TZ=America/New_York date -d "yesterday" +%Y-%m-%d)
           
-          # Check latest release to find last downloaded date
-          LATEST_TAG=$(gh release list --limit 1 --json tagName -q '.[0].tagName' 2>/dev/null || echo "")
+          # Check latest data-* release to find last downloaded date
+          # Filter for only data-YYYY-MM-DD tags and get the most recent one
+          LATEST_TAG=$(gh release list --limit 100 --json tagName -q '[.[].tagName | select(startswith("data-"))] | sort | reverse | .[0]' 2>/dev/null || echo "")
+          
+          echo "Latest data tag found: $LATEST_TAG"
           
           if [[ -n "${{ github.event.inputs.start_date }}" ]]; then
             START_DATE="${{ github.event.inputs.start_date }}"
@@ -57,6 +60,17 @@ jobs:
             END_DATE="${{ github.event.inputs.end_date }}"
           else
             END_DATE="$YESTERDAY"
+          fi
+          
+          # Safety check: don't try to download more than 7 days at once
+          # This prevents runaway downloads if date detection fails
+          START_TS=$(date -d "$START_DATE" +%s)
+          END_TS=$(date -d "$END_DATE" +%s)
+          DAYS_DIFF=$(( (END_TS - START_TS) / 86400 ))
+          
+          if [[ $DAYS_DIFF -gt 7 ]]; then
+            echo "::warning::Date range is $DAYS_DIFF days, limiting to last 7 days to prevent timeout"
+            START_DATE=$(date -d "$END_DATE - 6 days" +%Y-%m-%d)
           fi
           
           echo "start_date=$START_DATE" >> $GITHUB_OUTPUT
