@@ -145,3 +145,14 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- Date range: ${{ steps.dates.outputs.start_date }} to ${{ steps.dates.outputs.end_date }}" >> $GITHUB_STEP_SUMMARY
           echo "- Files processed: ${{ steps.check_files.outputs.file_count }}" >> $GITHUB_STEP_SUMMARY
+
+      - name: Send failure notification
+        if: failure()
+        run: |
+          python scripts/send_lark_notification.py failure \
+            --workflow "Download Kalshi Trades" \
+            --run-id "${{ github.run_id }}" \
+            --error "下载日期范围: ${{ steps.dates.outputs.start_date }} 到 ${{ steps.dates.outputs.end_date }}"
+        env:
+          LARK_WEBHOOK_URL: ${{ secrets.LARK_WEBHOOK_URL }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
