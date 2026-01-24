@@ -14,11 +14,11 @@ def send_lark_message(webhook_url: str, report_date: str, match_count: int, file
     github_repo = os.environ.get("GITHUB_REPOSITORY", "WYIN711/Prediction-Market")
 
     # GitHub Pages URL
-    # Format: https://<username>.github.io/<repo>/polymarket/docs/<filename>
+    # Format: https://<username>.github.io/<repo>/polymarket/<filename>
     repo_parts = github_repo.split("/")
     if len(repo_parts) == 2:
         username, repo_name = repo_parts
-        pages_url = f"https://{username}.github.io/{repo_name}/polymarket/docs/{filename}"
+        pages_url = f"https://{username}.github.io/{repo_name}/polymarket/{filename}"
     else:
         pages_url = f"https://github.com/{github_repo}"
 

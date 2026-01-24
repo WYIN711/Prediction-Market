@@ -129,7 +129,7 @@ Polymarket Tracker 每周六上午 10:00（香港时间）自动运行，查找�
 ### 访问报告
 
 报告托管在 GitHub Pages：
-- URL: `https://wyin711.github.io/Prediction-Market/polymarket/docs/`
+- URL: `https://wyin711.github.io/Prediction-Market/polymarket/`
 
 ### 手动触发
 

@@ -47,7 +47,7 @@ jobs:
         run: |
           git config user.name github-actions
           git config user.email github-actions@github.com
-          git add polymarket/docs/
+          git add docs/polymarket/
           git commit -m "Polymarket data update $(date +%Y-%m-%d)" || echo "No changes to commit"
           git push
 

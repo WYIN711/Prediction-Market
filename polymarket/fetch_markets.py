@@ -136,10 +136,11 @@ def fetch_markets():
 
     print(f"\nTotal matches found: {match_count}")
 
-    # Determine output directory (docs/ for GitHub Pages)
-    script_dir = Path(__file__).parent
-    docs_dir = script_dir / "docs"
-    docs_dir.mkdir(exist_ok=True)
+    # Determine output directory (docs/polymarket/ for GitHub Pages)
+    # When running in GitHub Actions, use repo root; locally use script parent
+    repo_root = Path(__file__).parent.parent
+    docs_dir = repo_root / "docs" / "polymarket"
+    docs_dir.mkdir(parents=True, exist_ok=True)
 
     date_str = datetime.now().strftime("%Y-%m-%d")
     filename = f"polymarket_data_{date_str}.xlsx"
