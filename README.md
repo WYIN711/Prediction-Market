@@ -1,14 +1,21 @@
-# Kalshi Prediction Market Tracker
+# Prediction Market Tracker
 
-自动追踪和分析 Kalshi 预测市场的交易数据。
+自动追踪和分析预测市场的交易数据，支持 Kalshi 和 Polymarket。
 
 ## 功能
 
+### Kalshi Tracker
 - 📊 每日自动下载 Kalshi 交易数据
 - 📈 生成 7 天滚动总交易量图表
 - 🏈 按市场类型（NFL、NCAA、NBA、MLB、加密货币等）分类分析
 - 🔄 GitHub Actions 自动化运行
 - 📧 定期邮件报告通知
+
+### Polymarket Tracker
+- 📊 每周自动抓取符合条件的 Polymarket 市场
+- 🎯 筛选条件：交易量 > $1M，概率 95-99% 或 1-5%，6 个月内结束
+- 📥 生成 Excel 报告，托管在 GitHub Pages
+- 💬 Lark/飞书自动通知
 
 ## 快速开始
 
@@ -102,13 +109,42 @@ gh release download data-2025-12-28 -D data/kalshi_trades
 cd data/kalshi_trades && tar -xzf kalshi_trades_2025-12-28.tar.gz
 ```
 
+## Polymarket Tracker
+
+### 功能说明
+
+Polymarket Tracker 每周六上午 10:00（香港时间）自动运行，查找符合以下条件的市场：
+- 交易量超过 100 万美元
+- 概率在 95%-99% 或 1%-5% 之间（即高概率或低概率事件）
+- 事件在未来 6 个月内结束
+
+### 设置 Lark 通知
+
+在 Repository Secrets 中添加：
+
+| Secret | 说明 |
+|--------|------|
+| `LARK_WEBHOOK_URL` | Lark/飞书 Bot 的 Webhook URL |
+
+### 访问报告
+
+报告托管在 GitHub Pages：
+- URL: `https://wyin711.github.io/Prediction-Market/polymarket/docs/`
+
+### 手动触发
+
+在 GitHub Actions 页面选择 "Polymarket Weekly Fetch" 工作流，点击 "Run workflow"。
+
+---
+
 ## 项目结构
 
 ```
 .
 ├── .github/workflows/      # GitHub Actions 工作流
-│   ├── download-data.yml   # 每日数据下载
-│   └── generate-reports.yml# 定期报告生成
+│   ├── download-data.yml   # Kalshi 每日数据下载
+│   ├── generate-reports.yml# Kalshi 定期报告生成
+│   └── polymarket-weekly.yml # Polymarket 每周抓取
 ├── analysis/
 │   ├── generate_all_plots.py  # 主分析脚本
 │   ├── update_plots.sh        # 报告生成入口
@@ -118,9 +154,15 @@ cd data/kalshi_trades && tar -xzf kalshi_trades_2025-12-28.tar.gz
 ├── data/
 │   └── kalshi_trades/         # 交易数据 JSON 文件
 ├── scripts/
-│   ├── download_kalshi_trades.py  # 数据下载脚本
+│   ├── download_kalshi_trades.py  # Kalshi 数据下载脚本
+│   ├── send_lark_notification.py  # Kalshi Lark 通知
 │   └── upload_historical_data.sh  # 历史数据上传
-├── requirements-analysis.txt  # Python 依赖
+├── polymarket/                # Polymarket Tracker
+│   ├── fetch_markets.py       # 市场抓取脚本
+│   ├── send_lark_notification.py # Lark 通知
+│   ├── requirements.txt       # Python 依赖
+│   └── docs/                  # GitHub Pages 报告
+├── requirements-analysis.txt  # Kalshi 分析依赖
 └── README.md
 ```
 

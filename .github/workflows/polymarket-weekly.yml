@@ -1,0 +1,70 @@
+name: Polymarket Weekly Fetch
+
+on:
+  schedule:
+    # Every Saturday at 10:00 AM HKT (UTC+8) = 02:00 UTC
+    - cron: "0 2 * * 6"
+  workflow_dispatch: # Allow manual trigger
+
+permissions:
+  contents: write
+
+env:
+  TZ: Asia/Hong_Kong
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r polymarket/requirements.txt
+
+      - name: Run fetch script
+        id: fetch
+        working-directory: polymarket
+        run: |
+          # Run the script and capture output
+          python fetch_markets.py 2>&1 | tee output.log
+
+          # Extract match count and filename from output
+          MATCH_COUNT=$(grep -oP 'Total matches found: \K\d+' output.log || echo "0")
+          FILENAME=$(grep -oP 'polymarket_data_\d{4}-\d{2}-\d{2}\.xlsx' output.log | head -1)
+
+          echo "match_count=$MATCH_COUNT" >> $GITHUB_OUTPUT
+          echo "filename=$FILENAME" >> $GITHUB_OUTPUT
+          echo "report_date=$(date +%Y-%m-%d)" >> $GITHUB_OUTPUT
+
+      - name: Commit and push results
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add polymarket/docs/
+          git commit -m "Polymarket data update $(date +%Y-%m-%d)" || echo "No changes to commit"
+          git push
+
+      - name: Send Lark notification
+        if: always()
+        env:
+          LARK_WEBHOOK_URL: ${{ secrets.LARK_WEBHOOK_URL }}
+        run: |
+          python polymarket/send_lark_notification.py \
+            "${{ steps.fetch.outputs.report_date }}" \
+            "${{ steps.fetch.outputs.match_count }}" \
+            "${{ steps.fetch.outputs.filename }}"
+
+      - name: Summary
+        run: |
+          echo "## Polymarket Fetch Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- Report Date: ${{ steps.fetch.outputs.report_date }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Markets Found: ${{ steps.fetch.outputs.match_count }}" >> $GITHUB_STEP_SUMMARY
+          echo "- File: ${{ steps.fetch.outputs.filename }}" >> $GITHUB_STEP_SUMMARY
